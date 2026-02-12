@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBankStore } from '@/store/bankStore';
-import { UserRole, ROLE_CONFIG, STATUS_CONFIG } from '@/types/bank';
+import { UserRole, ROLE_CONFIG, STATUS_CONFIG, OPERATION_CODES } from '@/types/bank';
 import { 
   ArrowLeft, 
   Plus, 
@@ -18,7 +18,13 @@ import {
   ShieldCheck,
   Search,
   MoreHorizontal,
-  LogOut
+  LogOut,
+  BookOpen,
+  BookMarked,
+  CircleDollarSign,
+  BarChart3,
+  Star,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +35,17 @@ import { CashOutForm } from './operations/CashOutForm';
 import { FXForm } from './operations/FXForm';
 import { CardOpenForm } from './operations/CardOpenForm';
 import { DepositOpenForm } from './operations/DepositOpenForm';
+import { LoanForm } from './operations/LoanForm';
 import { ActivityLogTable } from './ActivityLogTable';
 import { ClientForm } from './ClientForm';
 import { OperationDetailModal } from './OperationDetailModal';
+import { AccountingJournal } from './AccountingJournal';
+import { OperationReference } from './OperationReference';
+import { DailyReport } from './DailyReport';
+import { ControlPanel } from './ControlPanel';
 import { cn } from '@/lib/utils';
 
-type ModalType = 'cash-in' | 'cash-out' | 'fx' | 'card' | 'deposit' | 'client' | 'log' | 'detail' | null;
+type ModalType = 'cash-in' | 'cash-out' | 'fx' | 'card' | 'deposit' | 'loan' | 'client' | 'log' | 'detail' | 'journal' | 'reference' | 'daily-report' | 'control' | null;
 
 interface SelectedOperation {
   operation: any;
@@ -49,29 +60,33 @@ const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
   rahbar: <ShieldCheck className="w-5 h-5" />,
 };
 
-const OPERATIONS: Record<UserRole, { id: ModalType; label: string; description: string; icon: React.ReactNode }[]> = {
+const OPERATIONS: Record<UserRole, { id: ModalType; label: string; description: string; icon: React.ReactNode; code?: string }[]> = {
   kassir: [
-    { id: 'cash-in', label: 'Naqd pul kirim', description: 'Mijozdan pul qabul qilish', icon: <TrendingUp className="w-5 h-5 text-success" /> },
-    { id: 'cash-out', label: 'Naqd pul chiqim', description: 'Mijozga pul berish', icon: <TrendingUp className="w-5 h-5 text-destructive rotate-180" /> },
+    { id: 'cash-in', label: 'Naqd pul kirim', description: 'Mijozdan pul qabul qilish', icon: <TrendingUp className="w-5 h-5 text-success" />, code: 'OP-01' },
+    { id: 'cash-out', label: 'Naqd pul chiqim', description: 'Mijozga pul berish', icon: <TrendingUp className="w-5 h-5 text-destructive rotate-180" />, code: 'OP-02' },
+    { id: 'loan', label: 'Kredit berish', description: 'Yangi kredit rasmiylashtirish', icon: <CircleDollarSign className="w-5 h-5 text-primary" />, code: 'OP-03' },
   ],
   valyuta: [
-    { id: 'fx', label: 'Valyuta ayirboshlash', description: 'Sotib olish / Sotish', icon: <ArrowLeftRight className="w-5 h-5 text-primary" /> },
+    { id: 'fx', label: 'Valyuta ayirboshlash', description: 'Sotib olish / Sotish', icon: <ArrowLeftRight className="w-5 h-5 text-primary" />, code: 'OP-04' },
   ],
   plastik: [
     { id: 'card', label: 'Karta ochish', description: 'Yangi plastik karta', icon: <CreditCard className="w-5 h-5 text-purple-500" /> },
   ],
   omonat: [
-    { id: 'deposit', label: 'Omonat ochish', description: 'Yangi omonat hisobi', icon: <Landmark className="w-5 h-5 text-amber-500" /> },
+    { id: 'deposit', label: 'Omonat ochish', description: 'Yangi omonat hisobi', icon: <Landmark className="w-5 h-5 text-amber-500" />, code: 'OP-05' },
   ],
   rahbar: [
-    { id: 'log', label: 'Faoliyat jurnali', description: 'Barcha operatsiyalar', icon: <Activity className="w-5 h-5 text-gray-500" /> },
+    { id: 'log', label: 'Faoliyat jurnali', description: 'Barcha operatsiyalar', icon: <Activity className="w-5 h-5 text-muted-foreground" /> },
+    { id: 'journal', label: 'Buxgalteriya jurnali', description: 'Debet/Kredit yozuvlari', icon: <BookOpen className="w-5 h-5 text-primary" /> },
+    { id: 'daily-report', label: 'Kunlik hisobot', description: 'Bugungi natijalar', icon: <BarChart3 className="w-5 h-5 text-success" /> },
+    { id: 'control', label: 'Nazorat bo\'limi', description: 'Operatsiyalarni tekshirish', icon: <ShieldCheck className="w-5 h-5 text-muted-foreground" /> },
   ],
 };
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { role } = useParams<{ role: UserRole }>();
-  const { currentUser, setCurrentUser, cashInOps, cashOutOps, fxOps, cardOps, depositOps, managerReport, clients, getStats, fetchClients, fetchCashInOps, fetchCashOutOps, fetchFXOps, fetchCardOps, fetchManagerReport, fetchDepositOps } = useBankStore();
+  const { currentUser, setCurrentUser, cashInOps, cashOutOps, fxOps, cardOps, depositOps, loanOps, managerReport, clients, getStats, fetchClients, fetchCashInOps, fetchCashOutOps, fetchFXOps, fetchCardOps, fetchManagerReport, fetchDepositOps, studentScore } = useBankStore();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedOperation, setSelectedOperation] = useState<SelectedOperation | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
@@ -307,7 +322,10 @@ export function Dashboard() {
                         {op.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground mb-0.5">{op.label}</h3>
+                        <h3 className="font-semibold text-foreground mb-0.5 flex items-center gap-2">
+                          {op.label}
+                          {op.code && <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">{op.code}</Badge>}
+                        </h3>
                         <p className="text-sm text-muted-foreground truncate">{op.description}</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -472,6 +490,43 @@ export function Dashboard() {
               )}
             </div>
             
+            {/* Score Card */}
+            <div className={cn("card-base p-5", studentScore.penalty_status === 'penalty' ? 'border-destructive/50' : studentScore.penalty_status === 'warning' ? 'border-warning/50' : '')}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Star className="w-4 h-4 text-warning" /> Natija
+                </h3>
+                <Badge variant={studentScore.penalty_status === 'penalty' ? 'error' : studentScore.penalty_status === 'warning' ? 'warning' : 'success'}>
+                  {studentScore.penalty_status === 'penalty' ? '🔴 Jarima' : studentScore.penalty_status === 'warning' ? '⚠️ Ogohlantirish' : '✅ Yaxshi'}
+                </Badge>
+              </div>
+              <p className="text-display-xs text-primary">{studentScore.score} <span className="text-sm font-normal text-muted-foreground">ball</span></p>
+              {studentScore.error_count > 0 && (
+                <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {studentScore.error_count} ta xatolik
+                </p>
+              )}
+            </div>
+
+            {/* Quick Links */}
+            <div className="card-base p-5 space-y-3">
+              <h3 className="font-semibold text-foreground">Qo'shimcha</h3>
+              <button onClick={() => setActiveModal('reference')} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors text-left">
+                <BookMarked className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Operatsiya kodlari</p>
+                  <p className="text-xs text-muted-foreground">Spravochnik</p>
+                </div>
+              </button>
+              <button onClick={() => setActiveModal('journal')} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors text-left">
+                <BookOpen className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Buxgalteriya jurnali</p>
+                  <p className="text-xs text-muted-foreground">Debet/Kredit</p>
+                </div>
+              </button>
+            </div>
+            
             {/* Help Card */}
             <div className="card-base p-5 bg-primary-50 border-primary-100 dark:bg-primary/10 dark:border-primary/20">
               <div className="flex items-center gap-3 mb-3">
@@ -495,8 +550,13 @@ export function Dashboard() {
       {activeModal === 'fx' && <FXForm onClose={() => setActiveModal(null)} />}
       {activeModal === 'card' && <CardOpenForm onClose={() => setActiveModal(null)} />}
       {activeModal === 'deposit' && <DepositOpenForm onClose={() => setActiveModal(null)} />}
+      {activeModal === 'loan' && <LoanForm onClose={() => setActiveModal(null)} />}
       {activeModal === 'client' && <ClientForm onClose={() => setActiveModal(null)} />}
       {activeModal === 'log' && <ActivityLogTable onClose={() => setActiveModal(null)} />}
+      {activeModal === 'journal' && <AccountingJournal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'reference' && <OperationReference onClose={() => setActiveModal(null)} />}
+      {activeModal === 'daily-report' && <DailyReport onClose={() => setActiveModal(null)} />}
+      {activeModal === 'control' && <ControlPanel onClose={() => setActiveModal(null)} />}
       {activeModal === 'detail' && selectedOperation && (
         <OperationDetailModal
           operation={selectedOperation.operation}
