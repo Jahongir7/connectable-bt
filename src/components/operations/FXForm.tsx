@@ -24,7 +24,7 @@ const EXCHANGE_RATES: Record<string, number> = {
 };
 
 export function FXForm({ onClose }: FXFormProps) {
-  const { currentUser, clients, addFxOp, addActivityLog } = useBankStore();
+  const { currentUser, clients, addFxOp, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -204,6 +204,8 @@ export function FXForm({ onClose }: FXFormProps) {
       };
       
       addActivityLog(log);
+      generateJournalEntries('fx', operation.oper_id, operation.berilgan_summa, operation.berilgan_valyuta, currentUser?.name || '');
+      addCorrectOperation();
       setSavedOp(operation);
       setShowReceipt(true);
       toast.success("Operatsiya muvaffaqiyatli saqlandi");

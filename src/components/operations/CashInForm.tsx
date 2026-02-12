@@ -16,7 +16,7 @@ interface CashInFormProps {
 }
 
 export function CashInForm({ onClose }: CashInFormProps) {
-  const { currentUser, clients, addCashIn, addActivityLog } = useBankStore();
+  const { currentUser, clients, addCashIn, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [savedOp, setSavedOp] = useState<CashIn | null>(null);
@@ -116,6 +116,8 @@ export function CashInForm({ onClose }: CashInFormProps) {
       };
       
       addActivityLog(log);
+      generateJournalEntries('cash_in', operation.oper_id, operation.summa, operation.valuta, currentUser?.name || '');
+      addCorrectOperation();
       setSavedOp(operation);
       setShowReceipt(true);
       toast.success("Operatsiya muvaffaqiyatli saqlandi");
@@ -168,7 +170,7 @@ export function CashInForm({ onClose }: CashInFormProps) {
         body: details,
         theme: 'plain',
         styles: { fontSize: 8, cellPadding: 1 },
-        columnStyles: { 0: { fontStyle: 'bold', width: 20 } }
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 20 } }
       });
 
       // Footer

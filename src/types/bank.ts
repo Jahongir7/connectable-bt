@@ -142,6 +142,77 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+// Accounting Journal
+export interface AccountingJournalEntry {
+  id: string;
+  operation_id: string;
+  operation_type: string;
+  debit_account: string;
+  credit_account: string;
+  amount: number;
+  currency: Currency;
+  created_at: Date;
+  created_by: string;
+}
+
+// Operation Codes
+export const OPERATION_CODES: Record<string, { code: string; name: string; description: string }> = {
+  cash_in: { code: 'OP-01', name: 'Naqd pul kirim', description: 'Mijozdan kassaga naqd pul qabul qilish operatsiyasi' },
+  cash_out: { code: 'OP-02', name: 'Naqd pul chiqim', description: 'Kassadan mijozga naqd pul berish operatsiyasi' },
+  loan: { code: 'OP-03', name: 'Kredit berish', description: 'Mijozga kredit ajratish va pul berish operatsiyasi' },
+  fx: { code: 'OP-04', name: 'Valyuta ayirboshlash', description: 'Xorijiy valyutani sotib olish yoki sotish operatsiyasi' },
+  deposit: { code: 'OP-05', name: 'Omonat ochish', description: 'Mijoz uchun yangi omonat hisobi ochish operatsiyasi' },
+};
+
+// Loan
+export type LoanStep = 1 | 2 | 3 | 4 | 5;
+export type LoanStatus = 'application' | 'verification' | 'insurance' | 'decision' | 'disbursement' | 'approved' | 'rejected';
+
+export interface LoanApplication {
+  oper_id: string;
+  sana_vaqt: Date;
+  operator_id: string;
+  operator_fio: string;
+  client_id: string;
+  client_fio: string;
+  summa: number;
+  valuta: Currency;
+  muddat_oy: number;
+  foiz: number;
+  maqsad: string;
+  oylik_tolov: number;
+  current_step: LoanStep;
+  scoring: {
+    has_income: boolean;
+    no_existing_debt: boolean;
+    insurance_confirmed: boolean;
+  };
+  scoring_result: 'recommended' | 'risky' | 'pending';
+  loan_status: LoanStatus;
+  status: OperationStatus;
+}
+
+// Gamification
+export interface StudentScore {
+  user_id: string;
+  score: number;
+  error_count: number;
+  correct_count: number;
+  penalty_status: 'normal' | 'warning' | 'penalty';
+}
+
+// Control Department
+export type AuditStatus = 'unchecked' | 'checked' | 'error_found';
+
+export interface AuditMark {
+  operation_id: string;
+  operation_type: string;
+  audit_status: AuditStatus;
+  marked_by: string;
+  marked_at: Date;
+  note?: string;
+}
+
 export const ROLE_CONFIG: Record<UserRole, {
   label: string;
   labelUz: string;

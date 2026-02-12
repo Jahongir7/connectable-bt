@@ -11,7 +11,13 @@ import {
   DepositOpen, 
   ActivityLog, 
   ChatMessage,
-  ManagerReportItem
+  ManagerReportItem,
+  AccountingJournalEntry,
+  LoanApplication,
+  StudentScore,
+  AuditMark,
+  AuditStatus,
+  Currency
 } from '@/types/bank';
 
 interface BankState {
@@ -64,6 +70,25 @@ interface BankState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   
+  // Accounting Journal
+  journalEntries: AccountingJournalEntry[];
+  addJournalEntry: (entry: AccountingJournalEntry) => void;
+  generateJournalEntries: (operationType: string, operationId: string, amount: number, currency: Currency, createdBy: string) => void;
+  
+  // Loan
+  loanOps: LoanApplication[];
+  addLoanOp: (op: LoanApplication) => void;
+  updateLoanOp: (id: string, data: Partial<LoanApplication>) => void;
+  
+  // Gamification
+  studentScore: StudentScore;
+  addCorrectOperation: () => void;
+  addMistake: () => void;
+  
+  // Audit/Control
+  auditMarks: AuditMark[];
+  setAuditMark: (mark: AuditMark) => void;
+  
   // Stats
   getStats: () => {
     totalOperations: number;
@@ -72,6 +97,15 @@ interface BankState {
     totalAmount: { UZS: number; USD: number; EUR: number };
   };
 }
+
+const JOURNAL_MAPPINGS: Record<string, { debit: string; credit: string }> = {
+  cash_in: { debit: 'Kassa', credit: 'Mijoz hisobi' },
+  cash_out: { debit: 'Mijoz hisobi', credit: 'Kassa' },
+  loan: { debit: 'Kredit hisobi', credit: 'Kassa' },
+  interest: { debit: 'Mijoz hisobi', credit: 'Foiz daromadi hisobi' },
+  fx: { debit: 'Valyuta hisobi', credit: 'Kassa' },
+  deposit: { debit: 'Kassa', credit: 'Omonat hisobi' },
+};
 
 const initialChatMessage: ChatMessage = {
   id: '1',
@@ -324,6 +358,60 @@ export const useBankStore = create<BankState>()(
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       
+      // Accounting Journal
+      journalEntries: [],
+      addJournalEntry: (entry) => set((state) => ({ journalEntries: [entry, ...state.journalEntries] })),
+      generateJournalEntries: (operationType, operationId, amount, currency, createdBy) => {
+        const mapping = JOURNAL_MAPPINGS[operationType];
+        if (!mapping) return;
+        
+        const entry: AccountingJournalEntry = {
+          id: `JRN-${Date.now()}`,
+          operation_id: operationId,
+          operation_type: operationType,
+          debit_account: mapping.debit,
+          credit_account: mapping.credit,
+          amount,
+          currency,
+          created_at: new Date(),
+          created_by: createdBy,
+        };
+        
+        set((state) => ({ journalEntries: [entry, ...state.journalEntries] }));
+      },
+      
+      // Loan
+      loanOps: [],
+      addLoanOp: (op) => set((state) => ({ loanOps: [...state.loanOps, op] })),
+      updateLoanOp: (id, data) => set((state) => ({
+        loanOps: state.loanOps.map(op => op.oper_id === id ? { ...op, ...data } : op)
+      })),
+      
+      // Gamification
+      studentScore: { user_id: '', score: 0, error_count: 0, correct_count: 0, penalty_status: 'normal' as const },
+      addCorrectOperation: () => set((state) => {
+        const newScore = state.studentScore.score + 10;
+        const newCorrect = state.studentScore.correct_count + 1;
+        return { studentScore: { ...state.studentScore, score: newScore, correct_count: newCorrect } };
+      }),
+      addMistake: () => set((state) => {
+        const newErrors = state.studentScore.error_count + 1;
+        const newScore = Math.max(0, state.studentScore.score - 5);
+        let penaltyStatus: 'normal' | 'warning' | 'penalty' = 'normal';
+        if (newErrors >= 5) penaltyStatus = 'penalty';
+        else if (newErrors >= 3) penaltyStatus = 'warning';
+        return { studentScore: { ...state.studentScore, score: newScore, error_count: newErrors, penalty_status: penaltyStatus } };
+      }),
+      
+      // Audit/Control
+      auditMarks: [],
+      setAuditMark: (mark) => set((state) => ({
+        auditMarks: [
+          ...state.auditMarks.filter(m => m.operation_id !== mark.operation_id),
+          mark
+        ]
+      })),
+      
       // Stats
       getStats: () => {
         const state = get();
@@ -357,10 +445,9 @@ export const useBankStore = create<BankState>()(
     }),
     {
       name: 'mamun-bank-storage',
-      version: 1,
+      version: 2,
       migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // Migrate clients from legacy fields to new descriptive fields
+        if (version === 0 || version === 1) {
           const state = persistedState as any;
           if (state.clients && Array.isArray(state.clients)) {
             state.clients = state.clients.map((client: any) => ({
@@ -374,6 +461,11 @@ export const useBankStore = create<BankState>()(
               notes: client.notes || client.izoh || '',
             }));
           }
+          // Initialize new fields
+          state.journalEntries = state.journalEntries || [];
+          state.loanOps = state.loanOps || [];
+          state.studentScore = state.studentScore || { user_id: '', score: 0, error_count: 0, correct_count: 0, penalty_status: 'normal' };
+          state.auditMarks = state.auditMarks || [];
           return state;
         }
         return persistedState;
@@ -387,7 +479,11 @@ export const useBankStore = create<BankState>()(
         cardOps: state.cardOps,
         depositOps: state.depositOps,
         managerReport: state.managerReport,
-        activityLog: state.activityLog
+        activityLog: state.activityLog,
+        journalEntries: state.journalEntries,
+        loanOps: state.loanOps,
+        studentScore: state.studentScore,
+        auditMarks: state.auditMarks
       })
     }
   )

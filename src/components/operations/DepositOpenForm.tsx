@@ -28,7 +28,7 @@ const DEPOSIT_LABELS: Record<DepositType, string> = {
 };
 
 export function DepositOpenForm({ onClose }: DepositOpenFormProps) {
-  const { currentUser, clients, addDepositOp, addActivityLog } = useBankStore();
+  const { currentUser, clients, addDepositOp, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -126,6 +126,8 @@ export function DepositOpenForm({ onClose }: DepositOpenFormProps) {
         };
         
         addActivityLog(log);
+        generateJournalEntries('deposit', operation.oper_id, operation.summa, operation.valuta, currentUser?.name || '');
+        addCorrectOperation();
         setSavedOp(operation);
         setShowReceipt(true);
         toast.success("Omonat muvaffaqiyatli ochildi");
