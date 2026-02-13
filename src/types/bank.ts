@@ -1,4 +1,4 @@
-export type UserRole = 'kassir' | 'valyuta' | 'plastik' | 'omonat' | 'rahbar';
+export type UserRole = 'kassir' | 'valyuta' | 'plastik' | 'omonat' | 'rahbar' | 'kredit' | 'buxgalteriya';
 export type OperationStatus = 'draft' | 'completed' | 'cancelled';
 export type Currency = 'UZS' | 'USD' | 'EUR';
 export type CardType = 'Humo' | 'Uzcard' | 'Visa';
@@ -156,13 +156,23 @@ export interface AccountingJournalEntry {
 }
 
 // Operation Codes
-export const OPERATION_CODES: Record<string, { code: string; name: string; description: string }> = {
-  cash_in: { code: 'OP-01', name: 'Naqd pul kirim', description: 'Mijozdan kassaga naqd pul qabul qilish operatsiyasi' },
-  cash_out: { code: 'OP-02', name: 'Naqd pul chiqim', description: 'Kassadan mijozga naqd pul berish operatsiyasi' },
-  loan: { code: 'OP-03', name: 'Kredit berish', description: 'Mijozga kredit ajratish va pul berish operatsiyasi' },
-  fx: { code: 'OP-04', name: 'Valyuta ayirboshlash', description: 'Xorijiy valyutani sotib olish yoki sotish operatsiyasi' },
-  deposit: { code: 'OP-05', name: 'Omonat ochish', description: 'Mijoz uchun yangi omonat hisobi ochish operatsiyasi' },
+export interface OperationCode {
+  code: string;
+  name: string;
+  description: string;
+  status: 'active' | 'inactive';
+}
+
+export const DEFAULT_OPERATION_CODES: Record<string, OperationCode> = {
+  cash_in: { code: 'OP-01', name: 'Naqd pul kirim', description: 'Mijozdan kassaga naqd pul qabul qilish operatsiyasi', status: 'active' },
+  cash_out: { code: 'OP-02', name: 'Naqd pul chiqim', description: 'Kassadan mijozga naqd pul berish operatsiyasi', status: 'active' },
+  loan: { code: 'OP-03', name: 'Kredit berish', description: 'Mijozga kredit ajratish va pul berish operatsiyasi', status: 'active' },
+  fx: { code: 'OP-04', name: 'Valyuta ayirboshlash', description: 'Xorijiy valyutani sotib olish yoki sotish operatsiyasi', status: 'active' },
+  deposit: { code: 'OP-05', name: 'Omonat ochish', description: 'Mijoz uchun yangi omonat hisobi ochish operatsiyasi', status: 'active' },
 };
+
+// Keep backward compat alias
+export const OPERATION_CODES = DEFAULT_OPERATION_CODES;
 
 // Loan
 export type LoanStep = 1 | 2 | 3 | 4 | 5;
@@ -199,6 +209,19 @@ export interface StudentScore {
   error_count: number;
   correct_count: number;
   penalty_status: 'normal' | 'warning' | 'penalty';
+}
+
+// Leader-controlled scoring
+export interface ManualScore {
+  id: string;
+  student_id: string;
+  student_name: string;
+  assigned_by: string;
+  assigned_by_name: string;
+  score: number;
+  comment: string;
+  session_id: string;
+  created_at: Date;
 }
 
 // Control Department
@@ -260,6 +283,22 @@ export const ROLE_CONFIG: Record<UserRole, {
     description: "Barcha operatsiyalarni ko'rish va nazorat qilish",
     color: "text-gray-700",
     bgColor: "bg-gray-100"
+  },
+  kredit: {
+    label: "Kredit mutaxassisi",
+    labelUz: "Kredit",
+    icon: "circle-dollar-sign",
+    description: "Kredit rasmiylashtirish va tahlil qilish",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50"
+  },
+  buxgalteriya: {
+    label: "Buxgalter",
+    labelUz: "Buxgalteriya",
+    icon: "book-open",
+    description: "Buxgalteriya jurnalini ko'rish va monitoring",
+    color: "text-teal-600",
+    bgColor: "bg-teal-50"
   }
 };
 

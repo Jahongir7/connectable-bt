@@ -15,7 +15,7 @@ interface CashOutFormProps {
 }
 
 export function CashOutForm({ onClose }: CashOutFormProps) {
-  const { currentUser, clients, addCashOut, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
+  const { currentUser, clients, addCashOut, addActivityLog, generateJournalEntries } = useBankStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -183,7 +183,7 @@ export function CashOutForm({ onClose }: CashOutFormProps) {
       
       addActivityLog(log);
       generateJournalEntries('cash_out', operation.oper_id, operation.summa, operation.valuta, currentUser?.name || '');
-      addCorrectOperation();
+      
       setSavedOp(operation);
       setShowReceipt(true);
       toast.success("Operatsiya muvaffaqiyatli saqlandi");

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBankStore } from '@/store/bankStore';
-import { UserRole, ROLE_CONFIG, STATUS_CONFIG, OPERATION_CODES } from '@/types/bank';
+import { UserRole, ROLE_CONFIG, STATUS_CONFIG, OPERATION_CODES, ManualScore } from '@/types/bank';
 import { 
   ArrowLeft, 
   Plus, 
@@ -43,9 +43,11 @@ import { AccountingJournal } from './AccountingJournal';
 import { OperationReference } from './OperationReference';
 import { DailyReport } from './DailyReport';
 import { ControlPanel } from './ControlPanel';
+import { LoanAnalysis } from './LoanAnalysis';
+import { ScoreManager } from './ScoreManager';
 import { cn } from '@/lib/utils';
 
-type ModalType = 'cash-in' | 'cash-out' | 'fx' | 'card' | 'deposit' | 'loan' | 'client' | 'log' | 'detail' | 'journal' | 'reference' | 'daily-report' | 'control' | null;
+type ModalType = 'cash-in' | 'cash-out' | 'fx' | 'card' | 'deposit' | 'loan' | 'client' | 'log' | 'detail' | 'journal' | 'reference' | 'daily-report' | 'control' | 'loan-analysis' | 'score-manager' | null;
 
 interface SelectedOperation {
   operation: any;
@@ -58,6 +60,8 @@ const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
   plastik: <CreditCard className="w-5 h-5" />,
   omonat: <Landmark className="w-5 h-5" />,
   rahbar: <ShieldCheck className="w-5 h-5" />,
+  kredit: <CircleDollarSign className="w-5 h-5" />,
+  buxgalteriya: <BookOpen className="w-5 h-5" />,
 };
 
 const OPERATIONS: Record<UserRole, { id: ModalType; label: string; description: string; icon: React.ReactNode; code?: string }[]> = {
@@ -80,6 +84,16 @@ const OPERATIONS: Record<UserRole, { id: ModalType; label: string; description: 
     { id: 'journal', label: 'Buxgalteriya jurnali', description: 'Debet/Kredit yozuvlari', icon: <BookOpen className="w-5 h-5 text-primary" /> },
     { id: 'daily-report', label: 'Kunlik hisobot', description: 'Bugungi natijalar', icon: <BarChart3 className="w-5 h-5 text-success" /> },
     { id: 'control', label: 'Nazorat bo\'limi', description: 'Operatsiyalarni tekshirish', icon: <ShieldCheck className="w-5 h-5 text-muted-foreground" /> },
+    { id: 'reference', label: 'Spravochnik boshqarish', description: 'Operatsiya kodlarini tahrirlash', icon: <BookMarked className="w-5 h-5 text-amber-500" /> },
+    { id: 'score-manager', label: 'Baho berish', description: 'Talabalarni baholash', icon: <Star className="w-5 h-5 text-warning" /> },
+  ],
+  kredit: [
+    { id: 'loan', label: 'Kredit rasmiylashtirish', description: 'Yangi kredit berish (5 bosqich)', icon: <CircleDollarSign className="w-5 h-5 text-primary" />, code: 'OP-03' },
+    { id: 'loan-analysis', label: 'Kredit tahlili', description: 'Kreditlarni tahlil qilish va qaror', icon: <BarChart3 className="w-5 h-5 text-blue-500" /> },
+  ],
+  buxgalteriya: [
+    { id: 'journal', label: 'Buxgalteriya jurnali', description: 'Debet/Kredit yozuvlari', icon: <BookOpen className="w-5 h-5 text-primary" /> },
+    { id: 'reference', label: 'Operatsiya kodlari', description: 'Spravochnik (faqat ko\'rish)', icon: <BookMarked className="w-5 h-5 text-amber-500" /> },
   ],
 };
 
@@ -130,6 +144,20 @@ export function Dashboard() {
         break;
       case 'omonat':
         ops = [...depositOps];
+        break;
+      case 'kredit':
+        ops = loanOps.map(op => ({
+          ...op,
+          oper_id: op.oper_id,
+          sana_vaqt: op.sana_vaqt,
+          client_fio: op.client_fio,
+          summa: op.summa,
+          valuta: op.valuta,
+          status: op.status,
+        }));
+        break;
+      case 'buxgalteriya':
+        ops = [];
         break;
       case 'rahbar':
         ops = managerReport.map(item => {
@@ -557,6 +585,8 @@ export function Dashboard() {
       {activeModal === 'reference' && <OperationReference onClose={() => setActiveModal(null)} />}
       {activeModal === 'daily-report' && <DailyReport onClose={() => setActiveModal(null)} />}
       {activeModal === 'control' && <ControlPanel onClose={() => setActiveModal(null)} />}
+      {activeModal === 'loan-analysis' && <LoanAnalysis onClose={() => setActiveModal(null)} />}
+      {activeModal === 'score-manager' && <ScoreManager onClose={() => setActiveModal(null)} />}
       {activeModal === 'detail' && selectedOperation && (
         <OperationDetailModal
           operation={selectedOperation.operation}
