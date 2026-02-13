@@ -9,6 +9,8 @@ import {
   CreditCard, 
   Landmark, 
   ShieldCheck,
+  CircleDollarSign,
+  BookOpen,
   Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,13 +22,15 @@ const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
   plastik: <CreditCard className="w-6 h-6" />,
   omonat: <Landmark className="w-6 h-6" />,
   rahbar: <ShieldCheck className="w-6 h-6" />,
+  kredit: <CircleDollarSign className="w-6 h-6" />,
+  buxgalteriya: <BookOpen className="w-6 h-6" />,
 };
 
 export function RoleSelection() {
   const navigate = useNavigate();
   const { currentUser, setCurrentUser, updateUserRole } = useBankStore();
   
-  const roles: UserRole[] = ['kassir', 'valyuta', 'plastik', 'omonat', 'rahbar'];
+  const roles: UserRole[] = ['kassir', 'valyuta', 'plastik', 'omonat', 'kredit', 'buxgalteriya', 'rahbar'];
   
   const handleRoleSelect = (role: UserRole) => {
     updateUserRole(role);

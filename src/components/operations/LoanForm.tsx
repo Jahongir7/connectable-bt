@@ -26,7 +26,7 @@ const STEPS: { step: LoanStep; label: string; icon: React.ReactNode }[] = [
 const LOAN_RATE = 24; // 24% annual, simple
 
 export function LoanForm({ onClose }: LoanFormProps) {
-  const { currentUser, clients, addLoanOp, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
+  const { currentUser, clients, addLoanOp, addActivityLog, generateJournalEntries } = useBankStore();
   const [currentStep, setCurrentStep] = useState<LoanStep>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -105,14 +105,13 @@ export function LoanForm({ onClose }: LoanFormProps) {
 
     addLoanOp(operation);
     generateJournalEntries('loan', operation.oper_id, operation.summa, operation.valuta, currentUser?.name || '');
-    addCorrectOperation();
 
     const log: ActivityLog = {
       id: `LOG-${Date.now()}`,
       sana_vaqt: new Date(),
       xodim_id: currentUser?.id || '',
       xodim_fio: currentUser?.name || '',
-      rol: 'kassir',
+      rol: currentUser?.role || 'kredit',
       operatsiya_turi: 'Kredit berish',
       oper_id: operation.oper_id,
       mijoz_fio: operation.client_fio,

@@ -17,7 +17,10 @@ import {
   StudentScore,
   AuditMark,
   AuditStatus,
-  Currency
+  Currency,
+  ManualScore,
+  OperationCode,
+  DEFAULT_OPERATION_CODES
 } from '@/types/bank';
 
 interface BankState {
@@ -88,6 +91,17 @@ interface BankState {
   // Audit/Control
   auditMarks: AuditMark[];
   setAuditMark: (mark: AuditMark) => void;
+  
+  // Manual Scores (Leader-controlled)
+  manualScores: ManualScore[];
+  addManualScore: (score: ManualScore) => void;
+  updateManualScore: (id: string, data: Partial<ManualScore>) => void;
+  
+  // Operation Codes (CRUD)
+  operationCodes: Record<string, OperationCode>;
+  addOperationCode: (key: string, code: OperationCode) => void;
+  updateOperationCode: (key: string, data: Partial<OperationCode>) => void;
+  deleteOperationCode: (key: string) => void;
   
   // Stats
   getStats: () => {
@@ -412,6 +426,29 @@ export const useBankStore = create<BankState>()(
         ]
       })),
       
+      // Manual Scores (Leader-controlled)
+      manualScores: [],
+      addManualScore: (score) => set((state) => ({ manualScores: [score, ...state.manualScores] })),
+      updateManualScore: (id, data) => set((state) => ({
+        manualScores: state.manualScores.map(s => s.id === id ? { ...s, ...data } : s)
+      })),
+      
+      // Operation Codes (CRUD)
+      operationCodes: { ...DEFAULT_OPERATION_CODES },
+      addOperationCode: (key, code) => set((state) => ({
+        operationCodes: { ...state.operationCodes, [key]: code }
+      })),
+      updateOperationCode: (key, data) => set((state) => ({
+        operationCodes: {
+          ...state.operationCodes,
+          [key]: { ...state.operationCodes[key], ...data }
+        }
+      })),
+      deleteOperationCode: (key) => set((state) => {
+        const { [key]: _, ...rest } = state.operationCodes;
+        return { operationCodes: rest };
+      }),
+      
       // Stats
       getStats: () => {
         const state = get();
@@ -445,9 +482,9 @@ export const useBankStore = create<BankState>()(
     }),
     {
       name: 'mamun-bank-storage',
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
-        if (version === 0 || version === 1) {
+        if (version < 3) {
           const state = persistedState as any;
           if (state.clients && Array.isArray(state.clients)) {
             state.clients = state.clients.map((client: any) => ({
@@ -466,6 +503,8 @@ export const useBankStore = create<BankState>()(
           state.loanOps = state.loanOps || [];
           state.studentScore = state.studentScore || { user_id: '', score: 0, error_count: 0, correct_count: 0, penalty_status: 'normal' };
           state.auditMarks = state.auditMarks || [];
+          state.manualScores = state.manualScores || [];
+          state.operationCodes = state.operationCodes || { ...DEFAULT_OPERATION_CODES };
           return state;
         }
         return persistedState;
@@ -483,7 +522,9 @@ export const useBankStore = create<BankState>()(
         journalEntries: state.journalEntries,
         loanOps: state.loanOps,
         studentScore: state.studentScore,
-        auditMarks: state.auditMarks
+        auditMarks: state.auditMarks,
+        manualScores: state.manualScores,
+        operationCodes: state.operationCodes
       })
     }
   )

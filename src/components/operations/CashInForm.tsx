@@ -16,7 +16,7 @@ interface CashInFormProps {
 }
 
 export function CashInForm({ onClose }: CashInFormProps) {
-  const { currentUser, clients, addCashIn, addActivityLog, generateJournalEntries, addCorrectOperation } = useBankStore();
+  const { currentUser, clients, addCashIn, addActivityLog, generateJournalEntries } = useBankStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [savedOp, setSavedOp] = useState<CashIn | null>(null);
@@ -117,7 +117,7 @@ export function CashInForm({ onClose }: CashInFormProps) {
       
       addActivityLog(log);
       generateJournalEntries('cash_in', operation.oper_id, operation.summa, operation.valuta, currentUser?.name || '');
-      addCorrectOperation();
+      
       setSavedOp(operation);
       setShowReceipt(true);
       toast.success("Operatsiya muvaffaqiyatli saqlandi");
